@@ -2,6 +2,10 @@
 
 A .NET MAUI app that compares local, cloud, and hybrid AI approaches for text summarization. Demonstrates Apple Intelligence (on-device), Azure OpenAI (cloud), and hybrid patterns that combine both.
 
+## Demo
+
+https://github.com/davidortinau/AiComparison/raw/refs/heads/main/media/aicomparison_demo.mp4
+
 ## Requirements
 
 - .NET 10 SDK
