@@ -2,11 +2,12 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:AiComparison.ViewModels"
+             xmlns:fs="clr-namespace:FlagstoneUI.Core.Controls;assembly=FlagstoneUI.Core"
              x:Class="AiComparison.MainPage"
              x:DataType="vm:MainViewModel"
              Title="AI Comparison"
              Shell.NavBarIsVisible="false"
-             BackgroundColor="{AppThemeBinding Light={StaticResource Surface}, Dark={StaticResource SurfaceDark}}">
+             BackgroundColor="{DynamicResource Color.Surface}">
 
        <Grid RowDefinitions="Auto,*,Auto"
              Padding="16">
@@ -16,81 +17,84 @@
                                    Spacing="4"
                                    Padding="0,8,0,16">
                      <Label Text="AI Summarization"
-                            Style="{StaticResource M3Headline}"
+                            FontSize="{DynamicResource FontSize.HeadlineMedium}"
+                            TextColor="{DynamicResource Color.OnSurface}"
                             HorizontalOptions="Center"/>
                      <Label Text="Compare local, cloud, and hybrid AI approaches"
-                            Style="{StaticResource M3Body}"
+                            FontSize="{DynamicResource FontSize.BodyMedium}"
+                            TextColor="{DynamicResource Color.OnSurface}"
                             HorizontalOptions="Center"
                             Opacity="0.7"/>
 
                      <!-- Scenario Selector -->
-                     <Border Style="{StaticResource M3OutlinedCard}"
-                             Padding="8"
-                             Margin="0,8,0,0">
+                     <fs:FsCard Style="{StaticResource OutlinedCard}"
+                                Padding="8"
+                                Margin="0,8,0,0">
                             <Grid ColumnDefinitions="Auto,*,*"
                                   ColumnSpacing="12">
                                    <Label Text="Scenario:"
-                                          Style="{StaticResource M3Body}"
+                                          FontSize="{DynamicResource FontSize.BodyMedium}"
+                                          TextColor="{DynamicResource Color.OnSurface}"
                                           VerticalOptions="Center"
                                           FontAttributes="Bold"/>
-                                   <Button Grid.Column="1"
-                                           Text="⚡ Power"
-                                           Style="{Binding IsPowerScenario, Converter={StaticResource BoolToButtonStyleConverter}}"
-                                           Clicked="OnPowerScenarioClicked"
-                                           x:Name="PowerScenarioButton"/>
-                                   <Button Grid.Column="2"
-                                           Text="🔒 Privacy"
-                                           Style="{Binding IsPrivacyScenario, Converter={StaticResource BoolToButtonStyleConverter}}"
-                                           Clicked="OnPrivacyScenarioClicked"
-                                           x:Name="PrivacyScenarioButton"/>
+                                   <fs:FsButton Grid.Column="1"
+                                                Text="⚡ Power"
+                                                Style="{Binding IsPowerScenario, Converter={StaticResource BoolToButtonStyleConverter}}"
+                                                Clicked="OnPowerScenarioClicked"
+                                                x:Name="PowerScenarioButton"/>
+                                   <fs:FsButton Grid.Column="2"
+                                                Text="🔒 Privacy"
+                                                Style="{Binding IsPrivacyScenario, Converter={StaticResource BoolToButtonStyleConverter}}"
+                                                Clicked="OnPrivacyScenarioClicked"
+                                                x:Name="PrivacyScenarioButton"/>
                             </Grid>
-                     </Border>
+                     </fs:FsCard>
                      <Label Text="{Binding ScenarioDescription}"
-                            Style="{StaticResource M3Body}"
+                            FontSize="12"
+                            TextColor="{DynamicResource Color.OnSurface}"
                             HorizontalOptions="Center"
-                            Opacity="0.6"
-                            FontSize="12"/>
+                            Opacity="0.6"/>
               </VerticalStackLayout>
 
               <Grid Grid.Row="1"
                     RowDefinitions="Auto,*,Auto,Auto">
 
                      <!-- Tab Selector -->
-                     <Border Grid.Row="0"
-                             Style="{StaticResource M3OutlinedCard}"
-                             Padding="4"
-                             Margin="0,0,0,16">
+                     <fs:FsCard Grid.Row="0"
+                                Style="{StaticResource OutlinedCard}"
+                                Padding="4"
+                                Margin="0,0,0,16">
                             <Grid ColumnDefinitions="*,*,*,*"
                                   ColumnSpacing="4">
-                                   <Button Text="🏠 Local"
-                                           Style="{StaticResource M3TonalButton}"
-                                           Clicked="OnLocalTabClicked"
-                                           x:Name="LocalTabButton"/>
-                                   <Button Grid.Column="1"
-                                           Text="☁️ Cloud"
-                                           Style="{StaticResource M3TextButton}"
-                                           Clicked="OnCloudTabClicked"
-                                           x:Name="CloudTabButton"/>
-                                   <Button Grid.Column="2"
-                                           Text="🔀 Hybrid"
-                                           Style="{StaticResource M3TextButton}"
-                                           Clicked="OnHybridTabClicked"
-                                           x:Name="HybridTabButton"/>
-                                   <Button Grid.Column="3"
-                                           Text="🏆 Final"
-                                           Style="{StaticResource M3TextButton}"
-                                           Clicked="OnFinalTabClicked"
-                                           IsEnabled="{Binding CanCompare}"
-                                           x:Name="FinalTabButton"/>
+                                   <fs:FsButton Text="🏠 Local"
+                                                Style="{StaticResource TonalButton}"
+                                                Clicked="OnLocalTabClicked"
+                                                x:Name="LocalTabButton"/>
+                                   <fs:FsButton Grid.Column="1"
+                                                Text="☁️ Cloud"
+                                                Style="{StaticResource TextButton}"
+                                                Clicked="OnCloudTabClicked"
+                                                x:Name="CloudTabButton"/>
+                                   <fs:FsButton Grid.Column="2"
+                                                Text="🔀 Hybrid"
+                                                Style="{StaticResource TextButton}"
+                                                Clicked="OnHybridTabClicked"
+                                                x:Name="HybridTabButton"/>
+                                   <fs:FsButton Grid.Column="3"
+                                                Text="🏆 Final"
+                                                Style="{StaticResource TextButton}"
+                                                Clicked="OnFinalTabClicked"
+                                                IsEnabled="{Binding CanCompare}"
+                                                x:Name="FinalTabButton"/>
                             </Grid>
-                     </Border>
+                     </fs:FsCard>
 
                      <ScrollView Grid.Row="1">
                             <VerticalStackLayout Spacing="8">
 
                                    <!-- Input Section -->
-                                   <Border Style="{StaticResource M3OutlinedCard}"
-                                           Margin="0,0,0,16">
+                                   <fs:FsCard Style="{StaticResource OutlinedCard}"
+                                              Margin="0,0,0,16">
                                           <Grid RowDefinitions="Auto,Auto"
                                                 RowSpacing="8">
 
@@ -98,21 +102,21 @@
                                                  <Grid ColumnDefinitions="*,Auto"
                                                        ColumnSpacing="8"
                                                        IsVisible="{Binding IsPowerScenario}">
-                                                        <Entry Text="{Binding ContentUrl}"
-                                                               Placeholder="Enter URL to load content from..."
-                                                               VerticalOptions="Center"/>
+                                                        <fs:FsEntry Text="{Binding ContentUrl}"
+                                                                    Placeholder="Enter URL to load content from..."
+                                                                    VerticalOptions="Center"/>
                                                         <HorizontalStackLayout Grid.Column="1"
                                                                                Spacing="8">
-                                                               <Button Text="Load"
-                                                                       Style="{StaticResource M3TonalButton}"
-                                                                       Command="{Binding LoadSampleTextCommand}"
-                                                                       IsEnabled="{Binding IsLoadingContent, Converter={StaticResource InvertedBoolConverter}}"
-                                                                       WidthRequest="80"/>
+                                                               <fs:FsButton Text="Load"
+                                                                            Style="{StaticResource TonalButton}"
+                                                                            Command="{Binding LoadSampleTextCommand}"
+                                                                            IsEnabled="{Binding IsLoadingContent, Converter={StaticResource InvertedBoolConverter}}"
+                                                                            WidthRequest="80"/>
                                                                <ActivityIndicator IsRunning="{Binding IsLoadingContent}"
                                                                                   IsVisible="{Binding IsLoadingContent}"
                                                                                   HeightRequest="20"
                                                                                   WidthRequest="20"
-                                                                                  Color="{StaticResource Primary}"/>
+                                                                                  Color="{DynamicResource Color.Primary}"/>
                                                         </HorizontalStackLayout>
                                                  </Grid>
 
@@ -121,17 +125,19 @@
                                                        ColumnSpacing="8"
                                                        IsVisible="{Binding IsPrivacyScenario}">
                                                         <Label Text="📋 Sample Patient Health Record"
-                                                               Style="{StaticResource M3Title}"
+                                                               FontSize="{DynamicResource FontSize.TitleMedium}"
+                                                               TextColor="{DynamicResource Color.OnSurface}"
+                                                               FontAttributes="Bold"
                                                                VerticalOptions="Center"/>
                                                         <HorizontalStackLayout Grid.Column="1"
                                                                                Spacing="8">
-                                                               <Button Text="Load Record"
-                                                                       Style="{StaticResource M3TonalButton}"
-                                                                       Command="{Binding LoadHealthRecordCommand}"
-                                                                       WidthRequest="120"/>
+                                                               <fs:FsButton Text="Load Record"
+                                                                            Style="{StaticResource TonalButton}"
+                                                                            Command="{Binding LoadHealthRecordCommand}"
+                                                                            WidthRequest="120"/>
                                                                <Label Text="{Binding WordCount, StringFormat='{0} words'}"
-                                                                      Style="{StaticResource M3Body}"
-                                                                      TextColor="{StaticResource Primary}"
+                                                                      FontSize="{DynamicResource FontSize.BodyMedium}"
+                                                                      TextColor="{DynamicResource Color.Primary}"
                                                                       IsVisible="{Binding HasContent}"
                                                                       VerticalOptions="Center"/>
                                                         </HorizontalStackLayout>
@@ -140,93 +146,91 @@
                                                  <Label Text="Input Text"
                                                         Grid.Row="1"
                                                         IsVisible="{Binding IsPowerScenario}"
-                                                        Style="{StaticResource M3Title}"/>
+                                                        FontSize="{DynamicResource FontSize.TitleMedium}"
+                                                        TextColor="{DynamicResource Color.OnSurface}"
+                                                        FontAttributes="Bold"/>
                                                  <Label Text="{Binding WordCount, StringFormat='{0} words'}"
                                                         Grid.Row="1"
                                                         HorizontalOptions="End"
                                                         VerticalOptions="End"
-                                                        Style="{StaticResource M3Body}"
-                                                        TextColor="{StaticResource Primary}"
+                                                        FontSize="{DynamicResource FontSize.BodyMedium}"
+                                                        TextColor="{DynamicResource Color.Primary}"
                                                         IsVisible="{Binding HasContent}"/>
 
-
-                                                 <Editor Grid.Row="1"
-                                                         Margin="0,20,0,0"
-                                                         Text="{Binding InputText}"
-                                                         Placeholder="Enter or paste text to summarize..."
-                                                         HeightRequest="200"
-                                                         IsVisible="{Binding IsPowerScenario}"/>
+                                                 <fs:FsEditor Grid.Row="1"
+                                                              Margin="0,20,0,0"
+                                                              Text="{Binding InputText}"
+                                                              Placeholder="Enter or paste text to summarize..."
+                                                              HeightRequest="200"
+                                                              IsVisible="{Binding IsPowerScenario}"/>
 
                                                  <!-- Collapsed view for health record in Privacy mode -->
-                                                 <Border Grid.Row="1"
-                                                         Style="{StaticResource M3OutlinedCard}"
-                                                         Padding="8"
-                                                         MaximumHeightRequest="100"
-                                                         IsVisible="{Binding IsPrivacyScenario}">
+                                                 <fs:FsCard Grid.Row="1"
+                                                            Style="{StaticResource OutlinedCard}"
+                                                            Padding="8"
+                                                            MaximumHeightRequest="100"
+                                                            IsVisible="{Binding IsPrivacyScenario}">
                                                         <ScrollView>
                                                                <Label Text="{Binding InputText}"
-                                                                      Style="{StaticResource M3Body}"
                                                                       FontSize="11"
+                                                                      TextColor="{DynamicResource Color.OnSurface}"
                                                                       Opacity="0.7"
                                                                       LineBreakMode="WordWrap"/>
                                                         </ScrollView>
-                                                 </Border>
+                                                 </fs:FsCard>
                                           </Grid>
-                                   </Border>
+                                   </fs:FsCard>
 
                                    <!-- Question Picker (Privacy mode only) -->
-                                   <Border Style="{StaticResource M3OutlinedCard}"
-                                           Padding="12"
-                                           Margin="0,0,0,16"
-                                           IsVisible="{Binding IsPrivacyScenario}">
+                                   <fs:FsCard Style="{StaticResource OutlinedCard}"
+                                              Padding="12"
+                                              Margin="0,0,0,16"
+                                              IsVisible="{Binding IsPrivacyScenario}">
                                           <Grid RowDefinitions="Auto,Auto"
                                                 RowSpacing="4">
                                                  <Label Text="Select a question to ask:"
-                                                        Style="{StaticResource M3Title}"/>
+                                                        FontSize="{DynamicResource FontSize.TitleMedium}"
+                                                        TextColor="{DynamicResource Color.OnSurface}"
+                                                        FontAttributes="Bold"/>
                                                  <Picker Grid.Row="1"
                                                          ItemsSource="{Binding HealthQuestions}"
                                                          SelectedItem="{Binding SelectedQuestion}"
                                                          Title="Choose a question..."/>
                                           </Grid>
-                                   </Border>
+                                   </fs:FsCard>
 
                                    <!-- Output Section -->
-                                   <Border Style="{StaticResource M3OutlinedCard}"
-                                           Margin="0,0,0,16">
+                                   <fs:FsCard Style="{StaticResource OutlinedCard}"
+                                              Margin="0,0,0,16">
                                           <Grid RowDefinitions="Auto,*"
                                                 RowSpacing="8">
                                                  <HorizontalStackLayout Spacing="8">
                                                         <Label Text="{Binding OutputSectionTitle}"
-                                                               Style="{StaticResource M3Title}"/>
+                                                               FontSize="{DynamicResource FontSize.TitleMedium}"
+                                                               TextColor="{DynamicResource Color.OnSurface}"
+                                                               FontAttributes="Bold"/>
                                                         <ActivityIndicator IsRunning="{Binding IsProcessing}"
                                                                            IsVisible="{Binding IsProcessing}"
                                                                            HeightRequest="16"
                                                                            WidthRequest="16"
-                                                                           Color="{StaticResource Primary}"/>
+                                                                           Color="{DynamicResource Color.Primary}"/>
                                                  </HorizontalStackLayout>
 
-                                                 <Editor HeightRequest="200"
-                                                         Grid.Row="1"
-                                                         Text="{Binding OutputText}"/>
-
-                                                 <!-- <ScrollView Grid.Row="1"
-                                        MinimumHeightRequest="150"
-                                        MaximumHeightRequest="250">
-                                <Label Text="{Binding OutputText}"
-                                       Style="{StaticResource M3Body}"
-                                       LineBreakMode="WordWrap"/>
-                            </ScrollView> -->
+                                                 <fs:FsEditor HeightRequest="200"
+                                                              Grid.Row="1"
+                                                              Text="{Binding OutputText}"/>
                                           </Grid>
-                                   </Border>
+                                   </fs:FsCard>
 
                                    <!-- Benchmark Comparison Panel -->
-                                   <Border Style="{StaticResource M3ElevatedCard}"
-                                           BackgroundColor="{AppThemeBinding Light={StaticResource PrimaryContainer}, Dark={StaticResource PrimaryContainerDark}}">
+                                   <fs:FsCard Style="{StaticResource ElevatedCard}"
+                                              BackgroundColor="{DynamicResource Color.PrimaryContainer}">
                                           <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
                                                 RowSpacing="8">
                                                  <Label Text="📊 Benchmark Comparison"
-                                                        Style="{StaticResource M3Title}"
-                                                        TextColor="{AppThemeBinding Light={StaticResource OnPrimaryContainer}, Dark={StaticResource OnPrimaryContainerDark}}"/>
+                                                        FontSize="{DynamicResource FontSize.TitleMedium}"
+                                                        TextColor="{DynamicResource Color.OnPrimaryContainer}"
+                                                        FontAttributes="Bold"/>
 
                                                  <!-- Header Row -->
                                                  <Grid Grid.Row="1"
@@ -337,7 +341,7 @@
                                                                FontAttributes="{Binding IsHybridBestMemory, Converter={StaticResource BoolToFontAttributeConverter}}"/>
                                                  </Grid>
                                           </Grid>
-                                   </Border>
+                                   </fs:FsCard>
                             </VerticalStackLayout>
                      </ScrollView>
               </Grid>
@@ -349,28 +353,28 @@
                     ColumnSpacing="12"
                     Padding="0,16,0,0">
                      <Label Text="{Binding StatusMessage}"
-                            Style="{StaticResource M3Body}"
+                            FontSize="{DynamicResource FontSize.BodyMedium}"
+                            TextColor="{DynamicResource Color.OnSurface}"
                             VerticalOptions="Center"
                             Opacity="0.8"/>
 
-                     <Button Grid.Column="1"
-                             Text="Clear"
-                             Style="{StaticResource M3OutlinedButton}"
-                             Command="{Binding ClearOutputCommand}"
-                             IsEnabled="{Binding IsProcessing, Converter={StaticResource InvertedBoolConverter}}"/>
+                     <fs:FsButton Grid.Column="1"
+                                  Text="Clear"
+                                  Style="{StaticResource OutlinedButton}"
+                                  Command="{Binding ClearOutputCommand}"
+                                  IsEnabled="{Binding IsProcessing, Converter={StaticResource InvertedBoolConverter}}"/>
 
-                     <Button Grid.Column="2"
-                             Style="{StaticResource M3FilledButton}"
-                             Command="{Binding SummarizeCommand}"
-                             CommandParameter="{Binding .}"
-                             IsEnabled="{Binding InputText.Length}">
-                            <Button.Text>
+                     <fs:FsButton Grid.Column="2"
+                                  Command="{Binding SummarizeCommand}"
+                                  CommandParameter="{Binding .}"
+                                  IsEnabled="{Binding InputText.Length}">
+                            <fs:FsButton.Text>
                                    <MultiBinding Converter="{StaticResource ProcessingButtonTextConverter}">
                                           <Binding Path="IsProcessing"/>
                                           <Binding Path="ActionButtonText"/>
                                    </MultiBinding>
-                            </Button.Text>
-                     </Button>
+                            </fs:FsButton.Text>
+                     </fs:FsButton>
               </Grid>
        </Grid>
 

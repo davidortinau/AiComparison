@@ -3,65 +3,18 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
 
-    <!-- Material 3 Color Scheme - Light -->
-    <Color x:Key="Primary">#6750A4</Color>
-    <Color x:Key="OnPrimary">#FFFFFF</Color>
-    <Color x:Key="PrimaryContainer">#EADDFF</Color>
-    <Color x:Key="OnPrimaryContainer">#21005D</Color>
-    
-    <Color x:Key="Secondary">#625B71</Color>
-    <Color x:Key="OnSecondary">#FFFFFF</Color>
-    <Color x:Key="SecondaryContainer">#E8DEF8</Color>
-    <Color x:Key="OnSecondaryContainer">#1D192B</Color>
-    
-    <Color x:Key="Tertiary">#7D5260</Color>
-    <Color x:Key="OnTertiary">#FFFFFF</Color>
-    <Color x:Key="TertiaryContainer">#FFD8E4</Color>
-    <Color x:Key="OnTertiaryContainer">#31111D</Color>
-    
-    <Color x:Key="Surface">#FEF7FF</Color>
-    <Color x:Key="SurfaceDim">#DED8E1</Color>
-    <Color x:Key="SurfaceBright">#FEF7FF</Color>
-    <Color x:Key="SurfaceContainerLowest">#FFFFFF</Color>
-    <Color x:Key="SurfaceContainerLow">#F7F2FA</Color>
-    <Color x:Key="SurfaceContainer">#F3EDF7</Color>
-    <Color x:Key="SurfaceContainerHigh">#ECE6F0</Color>
-    <Color x:Key="SurfaceContainerHighest">#E6E0E9</Color>
-    <Color x:Key="OnSurface">#1D1B20</Color>
-    <Color x:Key="OnSurfaceVariant">#49454F</Color>
-    
-    <Color x:Key="Outline">#79747E</Color>
-    <Color x:Key="OutlineVariant">#CAC4D0</Color>
-    
-    <Color x:Key="Error">#B3261E</Color>
-    <Color x:Key="OnError">#FFFFFF</Color>
-    <Color x:Key="ErrorContainer">#F9DEDC</Color>
-    <Color x:Key="OnErrorContainer">#410E0B</Color>
-    
+    <!-- App-specific colors not provided by FlagstoneUI Material theme -->
     <Color x:Key="Success">#386A20</Color>
     <Color x:Key="SuccessContainer">#B8F397</Color>
 
-    <!-- Material 3 Color Scheme - Dark -->
+    <!-- Colors referenced by default MAUI control styles in Styles.xaml -->
+    <Color x:Key="Primary">#6750A4</Color>
     <Color x:Key="PrimaryDark">#D0BCFF</Color>
     <Color x:Key="OnPrimaryDark">#381E72</Color>
-    <Color x:Key="PrimaryContainerDark">#4F378B</Color>
-    <Color x:Key="OnPrimaryContainerDark">#EADDFF</Color>
-    
-    <Color x:Key="SecondaryDark">#CCC2DC</Color>
-    <Color x:Key="OnSecondaryDark">#332D41</Color>
-    <Color x:Key="SecondaryContainerDark">#4A4458</Color>
-    <Color x:Key="OnSecondaryContainerDark">#E8DEF8</Color>
-    
-    <Color x:Key="SurfaceDark">#141218</Color>
-    <Color x:Key="SurfaceContainerDark">#211F26</Color>
-    <Color x:Key="SurfaceContainerHighDark">#2B2930</Color>
-    <Color x:Key="OnSurfaceDark">#E6E0E9</Color>
-    <Color x:Key="OnSurfaceVariantDark">#CAC4D0</Color>
-    
-    <Color x:Key="OutlineDark">#938F99</Color>
-    <Color x:Key="OutlineVariantDark">#49454F</Color>
+    <Color x:Key="Secondary">#625B71</Color>
+    <Color x:Key="SecondaryDarkText">#CCC2DC</Color>
 
-    <!-- Legacy colors for compatibility -->
+    <!-- Legacy colors for default MAUI control styles -->
     <Color x:Key="White">White</Color>
     <Color x:Key="Black">Black</Color>
     <Color x:Key="Gray100">#E1E1E1</Color>
@@ -72,18 +25,7 @@
     <Color x:Key="Gray600">#404040</Color>
     <Color x:Key="Gray900">#212121</Color>
     <Color x:Key="Gray950">#141414</Color>
-    
-    <!-- Legacy colors for default MAUI styles -->
     <Color x:Key="Magenta">#D600AA</Color>
     <Color x:Key="MidnightBlue">#190649</Color>
     <Color x:Key="OffBlack">#1f1f1f</Color>
-    <Color x:Key="SecondaryDarkText">#CCC2DC</Color>
-
-    <!-- Brushes -->
-    <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource Primary}"/>
-    <SolidColorBrush x:Key="SecondaryBrush" Color="{StaticResource Secondary}"/>
-    <SolidColorBrush x:Key="SurfaceBrush" Color="{StaticResource Surface}"/>
-    <SolidColorBrush x:Key="SurfaceContainerBrush" Color="{StaticResource SurfaceContainer}"/>
-    <SolidColorBrush x:Key="OutlineBrush" Color="{StaticResource Outline}"/>
-    <SolidColorBrush x:Key="OutlineVariantBrush" Color="{StaticResource OutlineVariant}"/>
 </ResourceDictionary>

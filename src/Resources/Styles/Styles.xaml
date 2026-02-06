@@ -431,182 +431,11 @@
         <Setter Property="SelectedTabColor" Value="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource Gray200}}" />
     </Style>
 
-    <!-- Material 3 Custom Styles -->
-    
-    <!-- M3 Display Text -->
-    <Style x:Key="M3Display" TargetType="Label">
-        <Setter Property="FontSize" Value="36"/>
-        <Setter Property="FontFamily" Value="OpenSansRegular"/>
-        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource OnSurface}, Dark={StaticResource OnSurfaceDark}}"/>
-    </Style>
-    
-    <!-- M3 Headline Text -->
-    <Style x:Key="M3Headline" TargetType="Label">
-        <Setter Property="FontSize" Value="24"/>
-        <Setter Property="FontFamily" Value="OpenSansRegular"/>
-        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource OnSurface}, Dark={StaticResource OnSurfaceDark}}"/>
-    </Style>
-    
-    <!-- M3 Title Text -->
-    <Style x:Key="M3Title" TargetType="Label">
-        <Setter Property="FontSize" Value="16"/>
-        <Setter Property="FontFamily" Value="OpenSansSemibold"/>
-        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource OnSurface}, Dark={StaticResource OnSurfaceDark}}"/>
-    </Style>
-    
-    <!-- M3 Body Text -->
-    <Style x:Key="M3Body" TargetType="Label">
-        <Setter Property="FontSize" Value="14"/>
-        <Setter Property="FontFamily" Value="OpenSansRegular"/>
-        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource OnSurface}, Dark={StaticResource OnSurfaceDark}}"/>
-    </Style>
-    
-    <!-- M3 Label Text (small) -->
-    <Style x:Key="M3Label" TargetType="Label">
-        <Setter Property="FontSize" Value="12"/>
-        <Setter Property="FontFamily" Value="OpenSansSemibold"/>
-        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource OnSurfaceVariant}, Dark={StaticResource OnSurfaceVariantDark}}"/>
-    </Style>
-    
-    <!-- M3 Filled Button -->
-    <Style x:Key="M3FilledButton" TargetType="Button">
-        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"/>
-        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource OnPrimary}, Dark={StaticResource OnPrimaryDark}}"/>
-        <Setter Property="FontFamily" Value="OpenSansSemibold"/>
-        <Setter Property="FontSize" Value="14"/>
-        <Setter Property="CornerRadius" Value="20"/>
-        <Setter Property="Padding" Value="24,12"/>
-        <Setter Property="MinimumHeightRequest" Value="40"/>
-        <Setter Property="VisualStateManager.VisualStateGroups">
-            <VisualStateGroupList>
-                <VisualStateGroup x:Name="CommonStates">
-                    <VisualState x:Name="Normal"/>
-                    <VisualState x:Name="Disabled">
-                        <VisualState.Setters>
-                            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource SurfaceContainerHighest}, Dark={StaticResource SurfaceContainerHighDark}}"/>
-                            <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource OnSurfaceVariant}, Dark={StaticResource OnSurfaceVariantDark}}"/>
-                        </VisualState.Setters>
-                    </VisualState>
-                    <VisualState x:Name="PointerOver">
-                        <VisualState.Setters>
-                            <Setter Property="Opacity" Value="0.92"/>
-                        </VisualState.Setters>
-                    </VisualState>
-                    <VisualState x:Name="Pressed">
-                        <VisualState.Setters>
-                            <Setter Property="Opacity" Value="0.88"/>
-                        </VisualState.Setters>
-                    </VisualState>
-                </VisualStateGroup>
-            </VisualStateGroupList>
-        </Setter>
-    </Style>
-    
-    <!-- M3 Tonal Button -->
-    <Style x:Key="M3TonalButton" TargetType="Button">
-        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource SecondaryContainer}, Dark={StaticResource SecondaryContainerDark}}"/>
-        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource OnSecondaryContainer}, Dark={StaticResource OnSecondaryContainerDark}}"/>
-        <Setter Property="FontFamily" Value="OpenSansSemibold"/>
-        <Setter Property="FontSize" Value="14"/>
-        <Setter Property="CornerRadius" Value="20"/>
-        <Setter Property="Padding" Value="24,12"/>
-        <Setter Property="MinimumHeightRequest" Value="40"/>
-        <Setter Property="VisualStateManager.VisualStateGroups">
-            <VisualStateGroupList>
-                <VisualStateGroup x:Name="CommonStates">
-                    <VisualState x:Name="Normal"/>
-                    <VisualState x:Name="Disabled">
-                        <VisualState.Setters>
-                            <Setter Property="Opacity" Value="0.38"/>
-                        </VisualState.Setters>
-                    </VisualState>
-                    <VisualState x:Name="PointerOver">
-                        <VisualState.Setters>
-                            <Setter Property="Opacity" Value="0.92"/>
-                        </VisualState.Setters>
-                    </VisualState>
-                </VisualStateGroup>
-            </VisualStateGroupList>
-        </Setter>
-    </Style>
-    
-    <!-- M3 Outlined Button -->
-    <Style x:Key="M3OutlinedButton" TargetType="Button">
-        <Setter Property="BackgroundColor" Value="Transparent"/>
-        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"/>
-        <Setter Property="BorderColor" Value="{AppThemeBinding Light={StaticResource Outline}, Dark={StaticResource OutlineDark}}"/>
-        <Setter Property="BorderWidth" Value="1"/>
-        <Setter Property="FontFamily" Value="OpenSansSemibold"/>
-        <Setter Property="FontSize" Value="14"/>
-        <Setter Property="CornerRadius" Value="20"/>
-        <Setter Property="Padding" Value="24,12"/>
-        <Setter Property="MinimumHeightRequest" Value="40"/>
-    </Style>
-    
-    <!-- M3 Text Button -->
-    <Style x:Key="M3TextButton" TargetType="Button">
-        <Setter Property="BackgroundColor" Value="Transparent"/>
-        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"/>
-        <Setter Property="FontFamily" Value="OpenSansSemibold"/>
-        <Setter Property="FontSize" Value="14"/>
-        <Setter Property="CornerRadius" Value="20"/>
-        <Setter Property="Padding" Value="12,10"/>
-        <Setter Property="MinimumHeightRequest" Value="40"/>
-    </Style>
-    
-    <!-- M3 Card (Border-based) -->
-    <Style x:Key="M3Card" TargetType="Border">
-        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource SurfaceContainerLow}, Dark={StaticResource SurfaceContainerDark}}"/>
-        <Setter Property="Stroke" Value="Transparent"/>
-        <Setter Property="StrokeThickness" Value="0"/>
-        <Setter Property="StrokeShape" Value="RoundRectangle 12"/>
-        <Setter Property="Padding" Value="16"/>
-        <Setter Property="Shadow">
-            <Shadow Brush="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource Black}}"
-                    Offset="0,1"
-                    Radius="3"
-                    Opacity="0.15"/>
-        </Setter>
-    </Style>
-    
-    <!-- M3 Outlined Card -->
-    <Style x:Key="M3OutlinedCard" TargetType="Border">
-        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource Surface}, Dark={StaticResource SurfaceDark}}"/>
-        <Setter Property="Stroke" Value="{AppThemeBinding Light={StaticResource OutlineVariant}, Dark={StaticResource OutlineVariantDark}}"/>
-        <Setter Property="StrokeThickness" Value="1"/>
-        <Setter Property="StrokeShape" Value="RoundRectangle 12"/>
-        <Setter Property="Padding" Value="16"/>
-    </Style>
-    
-    <!-- M3 Elevated Card -->
-    <Style x:Key="M3ElevatedCard" TargetType="Border">
-        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource SurfaceContainerLow}, Dark={StaticResource SurfaceContainerDark}}"/>
-        <Setter Property="Stroke" Value="Transparent"/>
-        <Setter Property="StrokeThickness" Value="0"/>
-        <Setter Property="StrokeShape" Value="RoundRectangle 12"/>
-        <Setter Property="Padding" Value="16"/>
-        <Setter Property="Shadow">
-            <Shadow Brush="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource Black}}"
-                    Offset="0,2"
-                    Radius="6"
-                    Opacity="0.2"/>
-        </Setter>
-    </Style>
-    
-    <!-- M3 Input Field Container -->
-    <Style x:Key="M3InputContainer" TargetType="Border">
-        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource SurfaceContainerHighest}, Dark={StaticResource SurfaceContainerHighDark}}"/>
-        <Setter Property="Stroke" Value="{AppThemeBinding Light={StaticResource Outline}, Dark={StaticResource OutlineDark}}"/>
-        <Setter Property="StrokeThickness" Value="1"/>
-        <Setter Property="StrokeShape" Value="RoundRectangle 4"/>
-        <Setter Property="Padding" Value="12,8"/>
-    </Style>
-    
     <!-- Benchmark value label -->
     <Style x:Key="BenchmarkValue" TargetType="Label">
         <Setter Property="FontSize" Value="20"/>
         <Setter Property="FontFamily" Value="OpenSansSemibold"/>
-        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"/>
+        <Setter Property="TextColor" Value="{DynamicResource Color.Primary}"/>
         <Setter Property="HorizontalOptions" Value="End"/>
     </Style>
     
@@ -614,7 +443,7 @@
     <Style x:Key="BenchmarkLabel" TargetType="Label">
         <Setter Property="FontSize" Value="12"/>
         <Setter Property="FontFamily" Value="OpenSansRegular"/>
-        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource OnSurfaceVariant}, Dark={StaticResource OnSurfaceVariantDark}}"/>
+        <Setter Property="TextColor" Value="{DynamicResource Color.OnSurfaceVariant}"/>
     </Style>
 
 </ResourceDictionary>

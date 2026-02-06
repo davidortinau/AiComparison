@@ -57,11 +57,11 @@ public class BoolToButtonStyleConverter : IValueConverter
     {
         if (value is bool isSelected && isSelected)
         {
-            if (Application.Current?.Resources.TryGetValue("M3TonalButton", out var tonalStyle) == true)
+            if (Application.Current?.Resources.TryGetValue("TonalButton", out var tonalStyle) == true)
                 return tonalStyle;
         }
         
-        if (Application.Current?.Resources.TryGetValue("M3TextButton", out var textStyle) == true)
+        if (Application.Current?.Resources.TryGetValue("TextButton", out var textStyle) == true)
             return textStyle;
             
         return null;
