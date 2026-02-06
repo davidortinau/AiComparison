@@ -1,0 +1,377 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:AiComparison.ViewModels"
+             x:Class="AiComparison.MainPage"
+             x:DataType="vm:MainViewModel"
+             Title="AI Comparison"
+             Shell.NavBarIsVisible="false"
+             BackgroundColor="{AppThemeBinding Light={StaticResource Surface}, Dark={StaticResource SurfaceDark}}">
+
+       <Grid RowDefinitions="Auto,*,Auto"
+             Padding="16">
+
+              <!-- Header -->
+              <VerticalStackLayout Grid.Row="0"
+                                   Spacing="4"
+                                   Padding="0,8,0,16">
+                     <Label Text="AI Summarization"
+                            Style="{StaticResource M3Headline}"
+                            HorizontalOptions="Center"/>
+                     <Label Text="Compare local, cloud, and hybrid AI approaches"
+                            Style="{StaticResource M3Body}"
+                            HorizontalOptions="Center"
+                            Opacity="0.7"/>
+
+                     <!-- Scenario Selector -->
+                     <Border Style="{StaticResource M3OutlinedCard}"
+                             Padding="8"
+                             Margin="0,8,0,0">
+                            <Grid ColumnDefinitions="Auto,*,*"
+                                  ColumnSpacing="12">
+                                   <Label Text="Scenario:"
+                                          Style="{StaticResource M3Body}"
+                                          VerticalOptions="Center"
+                                          FontAttributes="Bold"/>
+                                   <Button Grid.Column="1"
+                                           Text="⚡ Power"
+                                           Style="{Binding IsPowerScenario, Converter={StaticResource BoolToButtonStyleConverter}}"
+                                           Clicked="OnPowerScenarioClicked"
+                                           x:Name="PowerScenarioButton"/>
+                                   <Button Grid.Column="2"
+                                           Text="🔒 Privacy"
+                                           Style="{Binding IsPrivacyScenario, Converter={StaticResource BoolToButtonStyleConverter}}"
+                                           Clicked="OnPrivacyScenarioClicked"
+                                           x:Name="PrivacyScenarioButton"/>
+                            </Grid>
+                     </Border>
+                     <Label Text="{Binding ScenarioDescription}"
+                            Style="{StaticResource M3Body}"
+                            HorizontalOptions="Center"
+                            Opacity="0.6"
+                            FontSize="12"/>
+              </VerticalStackLayout>
+
+              <Grid Grid.Row="1"
+                    RowDefinitions="Auto,*,Auto,Auto">
+
+                     <!-- Tab Selector -->
+                     <Border Grid.Row="0"
+                             Style="{StaticResource M3OutlinedCard}"
+                             Padding="4"
+                             Margin="0,0,0,16">
+                            <Grid ColumnDefinitions="*,*,*,*"
+                                  ColumnSpacing="4">
+                                   <Button Text="🏠 Local"
+                                           Style="{StaticResource M3TonalButton}"
+                                           Clicked="OnLocalTabClicked"
+                                           x:Name="LocalTabButton"/>
+                                   <Button Grid.Column="1"
+                                           Text="☁️ Cloud"
+                                           Style="{StaticResource M3TextButton}"
+                                           Clicked="OnCloudTabClicked"
+                                           x:Name="CloudTabButton"/>
+                                   <Button Grid.Column="2"
+                                           Text="🔀 Hybrid"
+                                           Style="{StaticResource M3TextButton}"
+                                           Clicked="OnHybridTabClicked"
+                                           x:Name="HybridTabButton"/>
+                                   <Button Grid.Column="3"
+                                           Text="🏆 Final"
+                                           Style="{StaticResource M3TextButton}"
+                                           Clicked="OnFinalTabClicked"
+                                           IsEnabled="{Binding CanCompare}"
+                                           x:Name="FinalTabButton"/>
+                            </Grid>
+                     </Border>
+
+                     <ScrollView Grid.Row="1">
+                            <VerticalStackLayout Spacing="8">
+
+                                   <!-- Input Section -->
+                                   <Border Style="{StaticResource M3OutlinedCard}"
+                                           Margin="0,0,0,16">
+                                          <Grid RowDefinitions="Auto,Auto"
+                                                RowSpacing="8">
+
+                                                 <!-- Power Scenario: URL input -->
+                                                 <Grid ColumnDefinitions="*,Auto"
+                                                       ColumnSpacing="8"
+                                                       IsVisible="{Binding IsPowerScenario}">
+                                                        <Entry Text="{Binding ContentUrl}"
+                                                               Placeholder="Enter URL to load content from..."
+                                                               VerticalOptions="Center"/>
+                                                        <HorizontalStackLayout Grid.Column="1"
+                                                                               Spacing="8">
+                                                               <Button Text="Load"
+                                                                       Style="{StaticResource M3TonalButton}"
+                                                                       Command="{Binding LoadSampleTextCommand}"
+                                                                       IsEnabled="{Binding IsLoadingContent, Converter={StaticResource InvertedBoolConverter}}"
+                                                                       WidthRequest="80"/>
+                                                               <ActivityIndicator IsRunning="{Binding IsLoadingContent}"
+                                                                                  IsVisible="{Binding IsLoadingContent}"
+                                                                                  HeightRequest="20"
+                                                                                  WidthRequest="20"
+                                                                                  Color="{StaticResource Primary}"/>
+                                                        </HorizontalStackLayout>
+                                                 </Grid>
+
+                                                 <!-- Privacy Scenario: Load Health Record -->
+                                                 <Grid ColumnDefinitions="*,Auto"
+                                                       ColumnSpacing="8"
+                                                       IsVisible="{Binding IsPrivacyScenario}">
+                                                        <Label Text="📋 Sample Patient Health Record"
+                                                               Style="{StaticResource M3Title}"
+                                                               VerticalOptions="Center"/>
+                                                        <HorizontalStackLayout Grid.Column="1"
+                                                                               Spacing="8">
+                                                               <Button Text="Load Record"
+                                                                       Style="{StaticResource M3TonalButton}"
+                                                                       Command="{Binding LoadHealthRecordCommand}"
+                                                                       WidthRequest="120"/>
+                                                               <Label Text="{Binding WordCount, StringFormat='{0} words'}"
+                                                                      Style="{StaticResource M3Body}"
+                                                                      TextColor="{StaticResource Primary}"
+                                                                      IsVisible="{Binding HasContent}"
+                                                                      VerticalOptions="Center"/>
+                                                        </HorizontalStackLayout>
+                                                 </Grid>
+
+                                                 <Label Text="Input Text"
+                                                        Grid.Row="1"
+                                                        IsVisible="{Binding IsPowerScenario}"
+                                                        Style="{StaticResource M3Title}"/>
+                                                 <Label Text="{Binding WordCount, StringFormat='{0} words'}"
+                                                        Grid.Row="1"
+                                                        HorizontalOptions="End"
+                                                        VerticalOptions="End"
+                                                        Style="{StaticResource M3Body}"
+                                                        TextColor="{StaticResource Primary}"
+                                                        IsVisible="{Binding HasContent}"/>
+
+
+                                                 <Editor Grid.Row="1"
+                                                         Margin="0,20,0,0"
+                                                         Text="{Binding InputText}"
+                                                         Placeholder="Enter or paste text to summarize..."
+                                                         HeightRequest="200"
+                                                         IsVisible="{Binding IsPowerScenario}"/>
+
+                                                 <!-- Collapsed view for health record in Privacy mode -->
+                                                 <Border Grid.Row="1"
+                                                         Style="{StaticResource M3OutlinedCard}"
+                                                         Padding="8"
+                                                         MaximumHeightRequest="100"
+                                                         IsVisible="{Binding IsPrivacyScenario}">
+                                                        <ScrollView>
+                                                               <Label Text="{Binding InputText}"
+                                                                      Style="{StaticResource M3Body}"
+                                                                      FontSize="11"
+                                                                      Opacity="0.7"
+                                                                      LineBreakMode="WordWrap"/>
+                                                        </ScrollView>
+                                                 </Border>
+                                          </Grid>
+                                   </Border>
+
+                                   <!-- Question Picker (Privacy mode only) -->
+                                   <Border Style="{StaticResource M3OutlinedCard}"
+                                           Padding="12"
+                                           Margin="0,0,0,16"
+                                           IsVisible="{Binding IsPrivacyScenario}">
+                                          <Grid RowDefinitions="Auto,Auto"
+                                                RowSpacing="4">
+                                                 <Label Text="Select a question to ask:"
+                                                        Style="{StaticResource M3Title}"/>
+                                                 <Picker Grid.Row="1"
+                                                         ItemsSource="{Binding HealthQuestions}"
+                                                         SelectedItem="{Binding SelectedQuestion}"
+                                                         Title="Choose a question..."/>
+                                          </Grid>
+                                   </Border>
+
+                                   <!-- Output Section -->
+                                   <Border Style="{StaticResource M3OutlinedCard}"
+                                           Margin="0,0,0,16">
+                                          <Grid RowDefinitions="Auto,*"
+                                                RowSpacing="8">
+                                                 <HorizontalStackLayout Spacing="8">
+                                                        <Label Text="{Binding OutputSectionTitle}"
+                                                               Style="{StaticResource M3Title}"/>
+                                                        <ActivityIndicator IsRunning="{Binding IsProcessing}"
+                                                                           IsVisible="{Binding IsProcessing}"
+                                                                           HeightRequest="16"
+                                                                           WidthRequest="16"
+                                                                           Color="{StaticResource Primary}"/>
+                                                 </HorizontalStackLayout>
+
+                                                 <Editor HeightRequest="200"
+                                                         Grid.Row="1"
+                                                         Text="{Binding OutputText}"/>
+
+                                                 <!-- <ScrollView Grid.Row="1"
+                                        MinimumHeightRequest="150"
+                                        MaximumHeightRequest="250">
+                                <Label Text="{Binding OutputText}"
+                                       Style="{StaticResource M3Body}"
+                                       LineBreakMode="WordWrap"/>
+                            </ScrollView> -->
+                                          </Grid>
+                                   </Border>
+
+                                   <!-- Benchmark Comparison Panel -->
+                                   <Border Style="{StaticResource M3ElevatedCard}"
+                                           BackgroundColor="{AppThemeBinding Light={StaticResource PrimaryContainer}, Dark={StaticResource PrimaryContainerDark}}">
+                                          <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
+                                                RowSpacing="8">
+                                                 <Label Text="📊 Benchmark Comparison"
+                                                        Style="{StaticResource M3Title}"
+                                                        TextColor="{AppThemeBinding Light={StaticResource OnPrimaryContainer}, Dark={StaticResource OnPrimaryContainerDark}}"/>
+
+                                                 <!-- Header Row -->
+                                                 <Grid Grid.Row="1"
+                                                       ColumnDefinitions="100,*,*,*"
+                                                       ColumnSpacing="8"
+                                                       Padding="0,8,0,4">
+                                                        <Label Text="Metric"
+                                                               Style="{StaticResource BenchmarkLabel}"
+                                                               FontAttributes="Bold"/>
+                                                        <Label Grid.Column="1"
+                                                               Text="🏠 Local"
+                                                               Style="{StaticResource BenchmarkLabel}"
+                                                               FontAttributes="Bold"
+                                                               HorizontalTextAlignment="End"/>
+                                                        <Label Grid.Column="2"
+                                                               Text="☁️ Cloud"
+                                                               Style="{StaticResource BenchmarkLabel}"
+                                                               FontAttributes="Bold"
+                                                               HorizontalTextAlignment="End"/>
+                                                        <Label Grid.Column="3"
+                                                               Text="🔀 Hybrid"
+                                                               Style="{StaticResource BenchmarkLabel}"
+                                                               FontAttributes="Bold"
+                                                               HorizontalTextAlignment="End"/>
+                                                 </Grid>
+
+                                                 <!-- Total Time Row -->
+                                                 <Grid Grid.Row="2"
+                                                       ColumnDefinitions="100,*,*,*"
+                                                       ColumnSpacing="8">
+                                                        <Label Text="Total (ms)"
+                                                               Style="{StaticResource BenchmarkLabel}"
+                                                               VerticalOptions="Center"/>
+                                                        <Label Grid.Column="1"
+                                                               Text="{Binding LocalBenchmark.TotalTimeMs, StringFormat='{0:N0}'}"
+                                                               Style="{StaticResource BenchmarkValue}"
+                                                               FontAttributes="{Binding IsLocalBestTime, Converter={StaticResource BoolToFontAttributeConverter}}"/>
+                                                        <Label Grid.Column="2"
+                                                               Text="{Binding CloudBenchmark.TotalTimeMs, StringFormat='{0:N0}'}"
+                                                               Style="{StaticResource BenchmarkValue}"
+                                                               FontAttributes="{Binding IsCloudBestTime, Converter={StaticResource BoolToFontAttributeConverter}}"/>
+                                                        <Label Grid.Column="3"
+                                                               Text="{Binding HybridBenchmark.TotalTimeMs, StringFormat='{0:N0}'}"
+                                                               Style="{StaticResource BenchmarkValue}"
+                                                               FontAttributes="{Binding IsHybridBestTime, Converter={StaticResource BoolToFontAttributeConverter}}"/>
+                                                 </Grid>
+
+                                                 <!-- First Token Row -->
+                                                 <Grid Grid.Row="3"
+                                                       ColumnDefinitions="100,*,*,*"
+                                                       ColumnSpacing="8">
+                                                        <Label Text="First Token (ms)"
+                                                               Style="{StaticResource BenchmarkLabel}"
+                                                               VerticalOptions="Center"/>
+                                                        <Label Grid.Column="1"
+                                                               Text="{Binding LocalBenchmark.FirstTokenLatencyMs, StringFormat='{0:N0}'}"
+                                                               Style="{StaticResource BenchmarkValue}"
+                                                               FontAttributes="{Binding IsLocalBestFirstToken, Converter={StaticResource BoolToFontAttributeConverter}}"/>
+                                                        <Label Grid.Column="2"
+                                                               Text="{Binding CloudBenchmark.FirstTokenLatencyMs, StringFormat='{0:N0}'}"
+                                                               Style="{StaticResource BenchmarkValue}"
+                                                               FontAttributes="{Binding IsCloudBestFirstToken, Converter={StaticResource BoolToFontAttributeConverter}}"/>
+                                                        <Label Grid.Column="3"
+                                                               Text="{Binding HybridBenchmark.FirstTokenLatencyMs, StringFormat='{0:N0}'}"
+                                                               Style="{StaticResource BenchmarkValue}"
+                                                               FontAttributes="{Binding IsHybridBestFirstToken, Converter={StaticResource BoolToFontAttributeConverter}}"/>
+                                                 </Grid>
+
+                                                 <!-- Tokens/sec Row -->
+                                                 <Grid Grid.Row="4"
+                                                       ColumnDefinitions="100,*,*,*"
+                                                       ColumnSpacing="8">
+                                                        <Label Text="Tokens/sec"
+                                                               Style="{StaticResource BenchmarkLabel}"
+                                                               VerticalOptions="Center"/>
+                                                        <Label Grid.Column="1"
+                                                               Text="{Binding LocalBenchmark.TokensPerSecond, StringFormat='{0:N1}'}"
+                                                               Style="{StaticResource BenchmarkValue}"
+                                                               FontAttributes="{Binding IsLocalBestTokensPerSec, Converter={StaticResource BoolToFontAttributeConverter}}"/>
+                                                        <Label Grid.Column="2"
+                                                               Text="{Binding CloudBenchmark.TokensPerSecond, StringFormat='{0:N1}'}"
+                                                               Style="{StaticResource BenchmarkValue}"
+                                                               FontAttributes="{Binding IsCloudBestTokensPerSec, Converter={StaticResource BoolToFontAttributeConverter}}"/>
+                                                        <Label Grid.Column="3"
+                                                               Text="{Binding HybridBenchmark.TokensPerSecond, StringFormat='{0:N1}'}"
+                                                               Style="{StaticResource BenchmarkValue}"
+                                                               FontAttributes="{Binding IsHybridBestTokensPerSec, Converter={StaticResource BoolToFontAttributeConverter}}"/>
+                                                 </Grid>
+
+                                                 <!-- Memory Row -->
+                                                 <Grid Grid.Row="5"
+                                                       ColumnDefinitions="100,*,*,*"
+                                                       ColumnSpacing="8">
+                                                        <Label Text="Memory Δ (MB)"
+                                                               Style="{StaticResource BenchmarkLabel}"
+                                                               VerticalOptions="Center"/>
+                                                        <Label Grid.Column="1"
+                                                               Text="{Binding LocalBenchmark.MemoryDeltaMB, StringFormat='{0:N2}'}"
+                                                               Style="{StaticResource BenchmarkValue}"
+                                                               FontAttributes="{Binding IsLocalBestMemory, Converter={StaticResource BoolToFontAttributeConverter}}"/>
+                                                        <Label Grid.Column="2"
+                                                               Text="{Binding CloudBenchmark.MemoryDeltaMB, StringFormat='{0:N2}'}"
+                                                               Style="{StaticResource BenchmarkValue}"
+                                                               FontAttributes="{Binding IsCloudBestMemory, Converter={StaticResource BoolToFontAttributeConverter}}"/>
+                                                        <Label Grid.Column="3"
+                                                               Text="{Binding HybridBenchmark.MemoryDeltaMB, StringFormat='{0:N2}'}"
+                                                               Style="{StaticResource BenchmarkValue}"
+                                                               FontAttributes="{Binding IsHybridBestMemory, Converter={StaticResource BoolToFontAttributeConverter}}"/>
+                                                 </Grid>
+                                          </Grid>
+                                   </Border>
+                            </VerticalStackLayout>
+                     </ScrollView>
+              </Grid>
+
+
+              <!-- Bottom Action Bar -->
+              <Grid Grid.Row="2"
+                    ColumnDefinitions="*,Auto,Auto"
+                    ColumnSpacing="12"
+                    Padding="0,16,0,0">
+                     <Label Text="{Binding StatusMessage}"
+                            Style="{StaticResource M3Body}"
+                            VerticalOptions="Center"
+                            Opacity="0.8"/>
+
+                     <Button Grid.Column="1"
+                             Text="Clear"
+                             Style="{StaticResource M3OutlinedButton}"
+                             Command="{Binding ClearOutputCommand}"
+                             IsEnabled="{Binding IsProcessing, Converter={StaticResource InvertedBoolConverter}}"/>
+
+                     <Button Grid.Column="2"
+                             Style="{StaticResource M3FilledButton}"
+                             Command="{Binding SummarizeCommand}"
+                             CommandParameter="{Binding .}"
+                             IsEnabled="{Binding InputText.Length}">
+                            <Button.Text>
+                                   <MultiBinding Converter="{StaticResource ProcessingButtonTextConverter}">
+                                          <Binding Path="IsProcessing"/>
+                                          <Binding Path="ActionButtonText"/>
+                                   </MultiBinding>
+                            </Button.Text>
+                     </Button>
+              </Grid>
+       </Grid>
+
+</ContentPage>
