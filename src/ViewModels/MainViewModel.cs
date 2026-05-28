@@ -151,7 +151,12 @@ public partial class MainViewModel : ObservableObject
     {
         LocalAvailable = await _localService.IsAvailableAsync();
         CloudAvailable = await _cloudService.IsAvailableAsync();
-        
+
+        // Warm the cloud connection in the background to lower first-token latency on the first run.
+        // Best-effort and offline-safe; never blocks initialization.
+        if (CloudAvailable)
+            _ = (_cloudService as CloudAiService)?.WarmupAsync();
+
         if (!LocalAvailable)
             StatusMessage = "⚠️ Local AI not available - check Apple Intelligence settings";
         else if (!CloudAvailable)

@@ -2,30 +2,76 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Channels;
 using AiComparison.Models;
+using AiComparison.Services.Maf;
+using Microsoft.Agents.AI;
+using Microsoft.Agents.AI.Workflows;
 using Microsoft.Extensions.AI;
 
 namespace AiComparison.Services;
 
 /// <summary>
-/// Privacy-preserving hybrid AI service that:
-/// 1. Local AI: Identifies and anonymizes PII (replaces with placeholders)
-/// 2. Cloud AI: Summarizes the anonymized text
-/// 3. Local AI: Restores original PII values in the summary
-/// 
-/// This enables using powerful cloud AI while keeping sensitive data on-device.
+/// Privacy-preserving hybrid AI service built as a Microsoft Agent Framework pipeline:
+/// <c>[AnonymizeExecutor: regex PII anonymization] --> [Cloud agent] --> service restores PII</c>.
+///
+/// PII never leaves the device: the anonymize stage replaces sensitive values with placeholders
+/// before anything is sent to the cloud agent. The original values are kept in per-call executor
+/// state (never in workflow shared state, events, logs, or streamed output). After the cloud agent
+/// finishes, the service restores the originals on the fully-buffered response and validates that no
+/// placeholders leaked through before surfacing the final result.
 /// </summary>
 public class PrivacyHybridAiService : IAiService
 {
-    private readonly IChatClient _localClient;
     private readonly IChatClient _cloudClient;
+
+    private const int MaxCloudOutputTokens = 800;
+
+    // Matches any residual [CATEGORY_n] placeholder so leaks can be detected after restoration.
+    private static readonly Regex PlaceholderRegex = new(@"\[[A-Z_]+_\d+\]", RegexOptions.Compiled);
+
+    private const string NetworkContext =
+        """
+        INSURANCE NETWORK CONTEXT (BlueCross BlueShield Portland Network):
+        Available Specialists:
+        - Endocrinology: Dr. Rachel Morrison, Pacific Diabetes Center (accepts new patients, 2-week wait)
+        - Cardiology: Dr. James Chen, Providence Heart Institute (specializes in preventive cardiology)
+        - Podiatry: Dr. Amanda Foster, Portland Foot & Ankle Clinic (diabetic foot care specialist)
+        - Genetic Counseling: Sarah Williams, MS, CGC, OHSU Knight Cancer Institute (BRCA testing)
+        - Neurology: Dr. Michael Park, Legacy Neuroscience Center (peripheral neuropathy specialist)
+        - Geriatric Medicine: Dr. Linda Tran, Providence ElderCare (Alzheimer's family support)
+
+        Nearby Facilities:
+        - Quest Diagnostics Lab: 1520 SW Taylor St (patient's usual lab)
+        - OHSU Imaging Center: Comprehensive cardiac and neurological imaging
+        - Providence Wellness Center: Diabetes education and nutrition counseling
+        """;
+
+    private static readonly string QuestionInstructions =
+        $"""
+        You are a medical assistant with access to both a patient's health record AND their insurance
+        network information. Patient identifying information has been replaced with placeholders like
+        [PERSON_NAME_1]; keep these placeholders in your answer where relevant — they will be restored
+        afterward. Use both the record data and the network resources below where helpful.
+
+        {NetworkContext}
+        """;
+
+    private const string SummaryInstructions =
+        """
+        Summarize the following medical record. Focus on key medical conditions and their current
+        management, important family medical history and risk factors, and recent concerns with
+        recommended next steps. Some identifying information has been replaced with placeholders like
+        [PERSON_NAME_1]; keep these placeholders in your summary where relevant.
+        """;
 
     public string Name => "Hybrid AI (Privacy)";
     public string Description => "Local anonymizes → Cloud summarizes → Local restores PII";
 
     public PrivacyHybridAiService(IChatClient localClient, IChatClient cloudClient)
     {
-        _localClient = localClient;
+        // The local client participates only as the on-device anonymization stage, which is pure
+        // regex (no model call); the cloud client performs the summarization/answer.
         _cloudClient = cloudClient;
     }
 
@@ -33,9 +79,8 @@ public class PrivacyHybridAiService : IAiService
     {
         try
         {
-            var localMeta = _localClient.GetService<ChatClientMetadata>();
             var cloudMeta = _cloudClient.GetService<ChatClientMetadata>();
-            return localMeta != null && cloudMeta != null;
+            return cloudMeta != null;
         }
         catch
         {
@@ -46,38 +91,36 @@ public class PrivacyHybridAiService : IAiService
     public async Task<SummarizationResult> SummarizeAsync(string text, CancellationToken cancellationToken = default)
     {
         var stopwatch = Stopwatch.StartNew();
-        var memoryBefore = GC.GetTotalMemory(true);
-        var inputWordCount = CountWords(text);
+        var memoryBefore = GC.GetTotalMemory(forceFullCollection: false);
+        var (question, healthRecord) = ParseRequest(text);
+        var inputWordCount = CountWords(healthRecord);
 
         try
         {
-            // Phase 1: Anonymize PII
-            var (anonymizedText, piiMap) = AnonymizePii(text);
+            var executor = new AnonymizeExecutor(healthRecord, question, progress: null);
+            var cloudAgent = CreateCloudAgent(question != null);
+            var buffer = new StringBuilder();
 
-            // Phase 2: Cloud summarizes anonymized text
-            var prompt = CreateSummaryPrompt(anonymizedText);
-            var response = await _cloudClient.GetResponseAsync(prompt, cancellationToken: cancellationToken);
-            var anonymizedSummary = response.Text ?? string.Empty;
+            var channel = Channel.CreateUnbounded<string>(new UnboundedChannelOptions { SingleReader = true });
+            var runTask = MafPipeline.RunAsync(executor, cloudAgent, healthRecord, channel.Writer,
+                token => buffer.Append(token), cancellationToken);
 
-            // Phase 3: Restore PII
-            var finalSummary = RestorePii(anonymizedSummary, piiMap);
-            
+            await foreach (var _ in channel.Reader.ReadAllAsync(cancellationToken))
+            {
+                // Non-streaming path: drain cloud tokens; progress markers are suppressed.
+            }
+
+            await runTask;
+
+            var (restored, _) = RestoreAndValidate(buffer.ToString(), executor.PiiMap);
+
             stopwatch.Stop();
-            var memoryAfter = GC.GetTotalMemory(false);
 
             return new SummarizationResult
             {
-                Text = finalSummary,
-                Benchmark = new BenchmarkResult
-                {
-                    TotalTimeMs = stopwatch.ElapsedMilliseconds,
-                    FirstTokenLatencyMs = stopwatch.ElapsedMilliseconds,
-                    TokensPerSecond = EstimateTokensPerSecond(finalSummary, stopwatch.ElapsedMilliseconds),
-                    MemoryDeltaBytes = memoryAfter - memoryBefore,
-                    InputWordCount = inputWordCount,
-                    OutputWordCount = CountWords(finalSummary),
-                    OutputTokenCount = EstimateTokenCount(finalSummary)
-                }
+                Text = restored,
+                Benchmark = CreateBenchmark(stopwatch.ElapsedMilliseconds, stopwatch.ElapsedMilliseconds,
+                    restored, memoryBefore, inputWordCount)
             };
         }
         catch (Exception ex)
@@ -92,147 +135,208 @@ public class PrivacyHybridAiService : IAiService
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var stopwatch = Stopwatch.StartNew();
-        var memoryBefore = GC.GetTotalMemory(true);
-        var firstTokenReceived = false;
-        long firstTokenLatency = 0;
-        var tokenCount = 0;
-
-        // Check if this is a Q&A request (format: "QUESTION:...\n---\nHEALTH_RECORD:...")
-        string? question = null;
-        string healthRecord = text;
-        
-        if (text.Contains("QUESTION:") && text.Contains("---"))
-        {
-            var parts = text.Split("---", 2, StringSplitOptions.TrimEntries);
-            if (parts.Length == 2)
-            {
-                question = parts[0].Replace("QUESTION:", "").Trim();
-                healthRecord = parts[1].Replace("HEALTH_RECORD:", "").Trim();
-            }
-        }
-        
+        var memoryBefore = GC.GetTotalMemory(forceFullCollection: false);
+        var (question, healthRecord) = ParseRequest(text);
         var inputWordCount = CountWords(healthRecord);
 
-        // Phase 1: Anonymize PII locally
-        yield return "📍 Phase 1: Anonymizing PII locally...\n\n";
-        
-        var (anonymizedText, piiMap) = AnonymizePii(healthRecord);
-        
-        yield return $"✓ Found and anonymized {piiMap.Count} PII items:\n";
-        foreach (var category in piiMap.GroupBy(p => GetPiiCategory(p.Key)))
-        {
-            yield return $"  • {category.Key}: {category.Count()} items\n";
-        }
-        yield return "\n";
-
-        // Show a preview of the anonymized text
-        yield return "📄 Anonymized text preview:\n";
-        yield return "─────────────────────────────\n";
-        var preview = anonymizedText.Length > 500 
-            ? anonymizedText.Substring(0, 500) + "..." 
-            : anonymizedText;
-        yield return preview + "\n";
-        yield return "─────────────────────────────\n\n";
-
-        // Phase 2: Cloud processes anonymized text (with network context if Q&A)
-        var phaseDescription = question != null 
-            ? "📍 Phase 2: Cloud AI answering question (with network context)...\n\n"
-            : "📍 Phase 2: Cloud AI summarizing anonymized text...\n\n";
-        yield return phaseDescription;
-        
         var outputBuilder = new StringBuilder();
-        var prompt = question != null 
-            ? CreateQuestionPrompt(anonymizedText, question)
-            : CreateSummaryPrompt(anonymizedText);
-        
-        await foreach (var update in _cloudClient.GetStreamingResponseAsync(prompt, cancellationToken: cancellationToken))
+        long firstTokenLatency = 0;
+        var firstTokenSeen = false;
+        var tokenCount = 0;
+
+        var channel = Channel.CreateUnbounded<string>(new UnboundedChannelOptions { SingleReader = true });
+        var executor = new AnonymizeExecutor(healthRecord, question, channel.Writer);
+        var cloudAgent = CreateCloudAgent(question != null);
+
+        void OnCloudToken(string token)
         {
-            if (!firstTokenReceived && !string.IsNullOrEmpty(update.Text))
+            if (!firstTokenSeen)
             {
                 firstTokenLatency = stopwatch.ElapsedMilliseconds;
-                firstTokenReceived = true;
+                firstTokenSeen = true;
             }
 
-            if (update.Text != null)
-            {
-                outputBuilder.Append(update.Text);
-                tokenCount++;
-                yield return update.Text;
+            outputBuilder.Append(token);
+            tokenCount++;
 
-                if (tokenCount % 5 == 0)
-                {
-                    onBenchmarkUpdate?.Invoke(CreateBenchmark(
-                        stopwatch.ElapsedMilliseconds,
-                        firstTokenLatency,
-                        outputBuilder.ToString(),
-                        memoryBefore,
-                        inputWordCount));
-                }
+            if (tokenCount % 5 == 0)
+            {
+                onBenchmarkUpdate?.Invoke(CreateBenchmark(
+                    stopwatch.ElapsedMilliseconds, firstTokenLatency, outputBuilder.ToString(),
+                    memoryBefore, inputWordCount));
             }
         }
 
-        var anonymizedResponse = outputBuilder.ToString();
+        // Own a linked CTS so early enumeration-stop or caller cancellation tears the workflow down.
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var runTask = MafPipeline.RunAsync(executor, cloudAgent, healthRecord, channel.Writer, OnCloudToken, cts.Token);
 
-        // Phase 3: Restore PII
-        yield return "\n\n📍 Phase 3: Restoring original PII values...\n\n";
-        
-        var finalResponse = RestorePii(anonymizedResponse, piiMap);
-        
+        try
+        {
+            await foreach (var piece in channel.Reader.ReadAllAsync(cts.Token))
+            {
+                yield return piece;
+            }
+        }
+        finally
+        {
+            cts.Cancel();
+            await runTask; // RunAsync never throws (errors surface via the channel); observe completion.
+        }
+
+        // Phase 3 (reached only after a successful drain): restore PII on the fully-buffered cloud
+        // response. Placeholders may be split across streamed tokens, so restoration must happen on
+        // the complete text. On an errored/cancelled stream the foreach above throws and we never get here.
+        var (finalResponse, leftovers) = RestoreAndValidate(outputBuilder.ToString(), executor.PiiMap);
+
         var resultLabel = question != null ? "Final answer" : "Final summary";
+        yield return $"\n\n📍 Phase 3: Restoring original PII values...\n\n";
         yield return $"✓ **{resultLabel} with restored PII:**\n\n";
         yield return "─────────────────────────────\n";
         yield return finalResponse;
         yield return "\n─────────────────────────────\n";
 
+        if (leftovers > 0)
+        {
+            yield return $"\n⚠️ {leftovers} placeholder(s) could not be matched to original values.\n";
+        }
+
         stopwatch.Stop();
         onBenchmarkUpdate?.Invoke(CreateBenchmark(
-            stopwatch.ElapsedMilliseconds,
-            firstTokenLatency,
-            finalResponse,
-            memoryBefore,
-            inputWordCount));
+            stopwatch.ElapsedMilliseconds, firstTokenSeen ? firstTokenLatency : stopwatch.ElapsedMilliseconds,
+            finalResponse, memoryBefore, inputWordCount));
+    }
+
+    private ChatClientAgent CreateCloudAgent(bool isQuestion) =>
+        new(_cloudClient, new ChatClientAgentOptions
+        {
+            Name = "CloudPrivacyAgent",
+            ChatOptions = new ChatOptions
+            {
+                Instructions = isQuestion ? QuestionInstructions : SummaryInstructions,
+                MaxOutputTokens = MaxCloudOutputTokens
+            }
+        });
+
+    private static (string? question, string healthRecord) ParseRequest(string text)
+    {
+        if (text.Contains("QUESTION:") && text.Contains("---"))
+        {
+            var parts = text.Split("---", 2, StringSplitOptions.TrimEntries);
+            if (parts.Length == 2)
+            {
+                var question = parts[0].Replace("QUESTION:", "").Trim();
+                var record = parts[1].Replace("HEALTH_RECORD:", "").Trim();
+                return (question, record);
+            }
+        }
+
+        return (null, text);
     }
 
     /// <summary>
-    /// Anonymizes PII in the text using regex patterns and returns a mapping for restoration.
+    /// On-device anonymization stage. Replaces PII with placeholders, keeps the original mapping in
+    /// per-call state (never sent to the cloud, events, or logs), emits a privacy-safe progress
+    /// preview, then forwards the anonymized prompt to the cloud agent.
     /// </summary>
-    private static (string anonymizedText, Dictionary<string, string> piiMap) AnonymizePii(string text)
+    [SendsMessage(typeof(ChatMessage))]
+    [SendsMessage(typeof(TurnToken))]
+    private sealed class AnonymizeExecutor : Executor<string>
     {
-        var piiMap = new Dictionary<string, string>();
+        private readonly string _healthRecord;
+        private readonly string? _question;
+        private readonly ChannelWriter<string>? _progress;
+
+        public Dictionary<string, string> PiiMap { get; } = new();
+
+        public AnonymizeExecutor(string healthRecord, string? question, ChannelWriter<string>? progress)
+            : base("AnonymizeExecutor")
+        {
+            _healthRecord = healthRecord;
+            _question = question;
+            _progress = progress;
+        }
+
+        public override async ValueTask HandleAsync(string message, IWorkflowContext context, CancellationToken cancellationToken = default)
+        {
+            await EmitAsync("📍 Phase 1: Anonymizing PII locally...\n\n", cancellationToken);
+
+            var anonymized = AnonymizePii(_healthRecord, PiiMap);
+
+            // The question is also bound for the cloud, so it must be anonymized too — otherwise PII in
+            // the question (e.g. a name) would bypass the privacy guarantee. It shares the same map so
+            // entities common to the record reuse the same placeholder and restore consistently.
+            var anonymizedQuestion = _question != null ? AnonymizeQuestion(_question, PiiMap) : null;
+
+            await EmitAsync($"✓ Found and anonymized {PiiMap.Count} PII items:\n", cancellationToken);
+            foreach (var category in PiiMap.GroupBy(p => GetPiiCategory(p.Key)))
+            {
+                await EmitAsync($"  • {category.Key}: {category.Count()} items\n", cancellationToken);
+            }
+            await EmitAsync("\n", cancellationToken);
+
+            // The preview shows anonymized text only (placeholders), so it is safe to surface.
+            await EmitAsync("📄 Anonymized text preview:\n─────────────────────────────\n", cancellationToken);
+            var preview = anonymized.Length > 500 ? anonymized[..500] + "..." : anonymized;
+            await EmitAsync(preview + "\n─────────────────────────────\n\n", cancellationToken);
+
+            var phase = _question != null
+                ? "📍 Phase 2: Cloud AI answering question (with network context)...\n\n"
+                : "📍 Phase 2: Cloud AI summarizing anonymized text...\n\n";
+            await EmitAsync(phase, cancellationToken);
+
+            var cloudUserMessage = _question != null
+                ? $"ANONYMIZED HEALTH RECORD:\n{anonymized}\n\nQUESTION:\n{anonymizedQuestion}"
+                : $"ANONYMIZED MEDICAL RECORD:\n{anonymized}";
+
+            await context.SendMessageAsync(new ChatMessage(ChatRole.User, cloudUserMessage), cancellationToken: cancellationToken);
+            await context.SendMessageAsync(new TurnToken(emitEvents: true), cancellationToken: cancellationToken);
+        }
+
+        private ValueTask EmitAsync(string text, CancellationToken cancellationToken) =>
+            _progress?.WriteAsync(text, cancellationToken) ?? ValueTask.CompletedTask;
+    }
+
+    /// <summary>
+    /// Anonymizes a free-text question against the SAME map built from the record. First substitutes
+    /// any already-known PII values (so entities shared with the record reuse the same placeholder and
+    /// restore consistently), then runs the regex detectors for any PII unique to the question.
+    /// </summary>
+    private static string AnonymizeQuestion(string question, Dictionary<string, string> piiMap)
+    {
+        var result = question;
+
+        // Replace known originals (longest first to avoid partial overlaps) with their placeholders.
+        foreach (var (placeholder, original) in piiMap.OrderByDescending(p => p.Value.Length))
+        {
+            if (!string.IsNullOrEmpty(original))
+            {
+                result = result.Replace(original, placeholder);
+            }
+        }
+
+        // Detect and anonymize any remaining PII unique to the question (continues map numbering).
+        return AnonymizePii(result, piiMap);
+    }
+
+    private static string AnonymizePii(string text, Dictionary<string, string> piiMap)
+    {
         var result = text;
-        var counter = 1;
+        // Continue numbering across calls (record then question) so placeholders never collide.
+        var counter = piiMap.Count + 1;
 
-        // SSN pattern: XXX-XX-XXXX
         result = ReplacePattern(result, @"\b\d{3}-\d{2}-\d{4}\b", "SSN", piiMap, ref counter);
-
-        // Phone numbers: (XXX) XXX-XXXX or XXX-XXX-XXXX
         result = ReplacePattern(result, @"\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b", "PHONE", piiMap, ref counter);
-
-        // Email addresses
         result = ReplacePattern(result, @"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", "EMAIL", piiMap, ref counter);
-
-        // Dates (various formats)
         result = ReplacePattern(result, @"\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+\d{4}\b", "DATE", piiMap, ref counter);
-
-        // Street addresses (simplified pattern)
         result = ReplacePattern(result, @"\b\d+\s+[A-Za-z]+\s+(?:Street|St|Avenue|Ave|Lane|Ln|Drive|Dr|Road|Rd|Boulevard|Blvd|Court|Ct|Way|Place|Pl)[,.]?\s*(?:Apartment|Apt|Suite|Ste|Unit|#)?\s*\d*[A-Za-z]?\b", "ADDRESS", piiMap, ref counter);
-
-        // Policy/Account numbers (alphanumeric with dashes)
         result = ReplacePattern(result, @"\b[A-Z]{2,4}[-#]?\d{5,}[-]?[A-Z]{0,2}\b", "POLICY_NUM", piiMap, ref counter);
-
-        // Names following specific patterns (Dr., Mr., Mrs., etc.)
         result = ReplacePattern(result, @"\b(?:Dr\.|Mr\.|Mrs\.|Ms\.)\s+[A-Z][a-z]+\s+[A-Z][a-z]+\b", "PERSON_TITLE", piiMap, ref counter);
-
-        // Full names in specific contexts (after "Name:", "Patient:", "Contact:", etc.)
         result = ReplacePattern(result, @"(?<=(?:Name|Patient|Contact|Physician|Doctor|Therapist|Educator):\s*)[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+", "PERSON_NAME", piiMap, ref counter);
-
-        // Ages
         result = ReplacePattern(result, @"\bage\s+\d{1,3}\b", "AGE", piiMap, ref counter, RegexOptions.IgnoreCase);
-
-        // City, State ZIP
         result = ReplacePattern(result, @"\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?,\s*[A-Z]{2}\s+\d{5}(?:-\d{4})?\b", "LOCATION", piiMap, ref counter);
 
-        return (result, piiMap);
+        return result;
     }
 
     private static string ReplacePattern(string text, string pattern, string category,
@@ -240,8 +344,8 @@ public class PrivacyHybridAiService : IAiService
     {
         var matches = Regex.Matches(text, pattern, options);
         var result = text;
-        
-        // Process in reverse order to maintain correct positions
+
+        // Process in reverse order to keep match indexes valid as we substitute.
         for (int i = matches.Count - 1; i >= 0; i--)
         {
             var match = matches[i];
@@ -249,21 +353,24 @@ public class PrivacyHybridAiService : IAiService
             piiMap[placeholder] = match.Value;
             result = result.Remove(match.Index, match.Length).Insert(match.Index, placeholder);
         }
-        
+
         return result;
     }
 
     /// <summary>
-    /// Restores original PII values from placeholders in the summary.
+    /// Restores original PII values from placeholders on the complete cloud response and reports how
+    /// many placeholders remain unmatched (a privacy/quality signal).
     /// </summary>
-    private static string RestorePii(string text, Dictionary<string, string> piiMap)
+    private static (string restored, int leftovers) RestoreAndValidate(string text, Dictionary<string, string> piiMap)
     {
         var result = text;
         foreach (var (placeholder, original) in piiMap)
         {
             result = result.Replace(placeholder, original);
         }
-        return result;
+
+        var leftovers = PlaceholderRegex.Matches(result).Count;
+        return (result, leftovers);
     }
 
     private static string GetPiiCategory(string placeholder)
@@ -280,57 +387,9 @@ public class PrivacyHybridAiService : IAiService
         return "Other";
     }
 
-    // Cloud prompt includes network context for richer answers
-    private static string CreateQuestionPrompt(string anonymizedRecord, string question) =>
-        $"""
-        You are a medical assistant with access to both a patient's health record AND their insurance network information.
-        
-        ANONYMIZED HEALTH RECORD:
-        {anonymizedRecord}
-
-        INSURANCE NETWORK CONTEXT (BlueCross BlueShield Portland Network):
-        Available Specialists:
-        - Endocrinology: Dr. Rachel Morrison, Pacific Diabetes Center (accepts new patients, 2-week wait)
-        - Cardiology: Dr. James Chen, Providence Heart Institute (specializes in preventive cardiology)
-        - Podiatry: Dr. Amanda Foster, Portland Foot & Ankle Clinic (diabetic foot care specialist)
-        - Genetic Counseling: Sarah Williams, MS, CGC, OHSU Knight Cancer Institute (BRCA testing)
-        - Neurology: Dr. Michael Park, Legacy Neuroscience Center (peripheral neuropathy specialist)
-        - Geriatric Medicine: Dr. Linda Tran, Providence ElderCare (Alzheimer's family support)
-        
-        Nearby Facilities:
-        - Quest Diagnostics Lab: 1520 SW Taylor St (patient's usual lab)
-        - OHSU Imaging Center: Comprehensive cardiac and neurological imaging
-        - Providence Wellness Center: Diabetes education and nutrition counseling
-        
-        Note: Patient identifying information has been replaced with placeholders like [PERSON_NAME_1].
-        Keep these placeholders in your answer where relevant - they will be restored afterward.
-
-        QUESTION:
-        {question}
-
-        ANSWER (incorporating both record data and network resources where helpful):
-        """;
-
-    // Fallback for summarization (non-question mode)
-    private static string CreateSummaryPrompt(string text) =>
-        $"""
-        Summarize the following medical record. Focus on:
-        - Key medical conditions and their current management
-        - Important family medical history and risk factors  
-        - Recent concerns and recommended next steps
-
-        Note: Some identifying information has been replaced with placeholders like [PERSON_NAME_1].
-        Keep these placeholders in your summary where relevant.
-
-        Medical Record:
-        {text}
-
-        Summary:
-        """;
-
     private BenchmarkResult CreateBenchmark(long totalMs, long firstTokenMs, string output, long memoryBefore, int inputWords)
     {
-        var memoryAfter = GC.GetTotalMemory(false);
+        var memoryAfter = GC.GetTotalMemory(forceFullCollection: false);
         return new BenchmarkResult
         {
             TotalTimeMs = totalMs,

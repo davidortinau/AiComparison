@@ -34,7 +34,7 @@ public class LocalAiService : IAiService
     public async Task<SummarizationResult> SummarizeAsync(string text, CancellationToken cancellationToken = default)
     {
         var stopwatch = Stopwatch.StartNew();
-        var memoryBefore = GC.GetTotalMemory(true);
+        var memoryBefore = GC.GetTotalMemory(forceFullCollection: false);
         var inputWordCount = CountWords(text);
 
         try
@@ -73,7 +73,7 @@ public class LocalAiService : IAiService
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var stopwatch = Stopwatch.StartNew();
-        var memoryBefore = GC.GetTotalMemory(true);
+        var memoryBefore = GC.GetTotalMemory(forceFullCollection: false);
         var inputWordCount = CountWords(text);
         var outputBuilder = new StringBuilder();
         var firstTokenReceived = false;

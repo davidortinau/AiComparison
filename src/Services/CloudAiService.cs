@@ -10,12 +10,38 @@ public class CloudAiService : IAiService
 {
     private readonly IChatClient _chatClient;
 
+    // Cap output length so cloud responses stay comparable and bounded in time.
+    private const int MaxOutputTokens = 800;
+
+    // Fresh options per request: ChatOptions is mutable and must not be shared across concurrent calls.
+    private static ChatOptions CreateOptions() => new() { MaxOutputTokens = MaxOutputTokens };
+
     public string Name => "Cloud AI";
     public string Description => "Azure OpenAI - Higher quality, requires network";
 
     public CloudAiService(IChatClient chatClient)
     {
         _chatClient = chatClient;
+    }
+
+    /// <summary>
+    /// Best-effort, offline-safe warmup that pays the TLS/handshake cost before the user runs a real
+    /// request, lowering first-token latency. Never throws.
+    /// </summary>
+    public async Task WarmupAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var warmupOptions = new ChatOptions { MaxOutputTokens = 1 };
+            await foreach (var _ in _chatClient.GetStreamingResponseAsync("ping", warmupOptions, cancellationToken))
+            {
+                break;
+            }
+        }
+        catch
+        {
+            // Warmup is opportunistic; ignore failures (offline, throttling, etc.).
+        }
     }
 
     public async Task<bool> IsAvailableAsync()
@@ -34,13 +60,13 @@ public class CloudAiService : IAiService
     public async Task<SummarizationResult> SummarizeAsync(string text, CancellationToken cancellationToken = default)
     {
         var stopwatch = Stopwatch.StartNew();
-        var memoryBefore = GC.GetTotalMemory(true);
+        var memoryBefore = GC.GetTotalMemory(forceFullCollection: false);
         var inputWordCount = CountWords(text);
 
         try
         {
             var prompt = CreateSummarizationPrompt(text);
-            var response = await _chatClient.GetResponseAsync(prompt, cancellationToken: cancellationToken);
+            var response = await _chatClient.GetResponseAsync(prompt, CreateOptions(), cancellationToken: cancellationToken);
             
             stopwatch.Stop();
             var memoryAfter = GC.GetTotalMemory(false);
@@ -73,7 +99,7 @@ public class CloudAiService : IAiService
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var stopwatch = Stopwatch.StartNew();
-        var memoryBefore = GC.GetTotalMemory(true);
+        var memoryBefore = GC.GetTotalMemory(forceFullCollection: false);
         var inputWordCount = CountWords(text);
         var outputBuilder = new StringBuilder();
         var firstTokenReceived = false;
@@ -82,7 +108,7 @@ public class CloudAiService : IAiService
 
         var prompt = CreateSummarizationPrompt(text);
 
-        await foreach (var update in _chatClient.GetStreamingResponseAsync(prompt, cancellationToken: cancellationToken))
+        await foreach (var update in _chatClient.GetStreamingResponseAsync(prompt, CreateOptions(), cancellationToken: cancellationToken))
         {
             if (!firstTokenReceived && !string.IsNullOrEmpty(update.Text))
             {
