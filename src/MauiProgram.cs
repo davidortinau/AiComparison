@@ -60,6 +60,7 @@ public static class MauiProgram
         // Note: AppleIntelligenceChatClient requires iOS/macOS 26+ at runtime
         // The service will check availability and handle gracefully if not available
 #pragma warning disable CA1416 // Platform compatibility - runtime check handles this
+#pragma warning disable MAUIAI0001 // Apple Intelligence is in preview/evaluation
         services.AddSingleton<AppleIntelligenceChatClient>();
         services.AddKeyedSingleton<IChatClient>("local", (sp, _) =>
         {
@@ -69,6 +70,7 @@ public static class MauiProgram
                 .UseLogging(sp.GetRequiredService<ILoggerFactory>())
                 .Build();
         });
+#pragma warning restore MAUIAI0001
 #pragma warning restore CA1416
 #endif
 
